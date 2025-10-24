@@ -12,7 +12,6 @@ env:
   TARGET: mediatek/filogic
   PROFILE: xiaomi_redmi-router-ax6000
   JOBS: 4  # 并行编译线程数
-  EXTRA_FEEDS: "https://github.com/你的源/nikki-package.git"
 
 jobs:
   build:
@@ -20,29 +19,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout 仓库
       - name: Checkout workflow repo
         uses: actions/checkout@v3
 
+      # 2. 安装编译依赖
       - name: Setup build environment
         run: |
           sudo apt update
-          sudo apt install -y build-essential git libncurses5-dev libncursesw5-dev zlib1g-dev \
-          gawk flex quilt libssl-dev xsltproc wget unzip python3 python3.10-distutils
+          sudo apt install -y build-essential git libncurses5-dev libncursesw5-dev \
+          zlib1g-dev gawk flex quilt libssl-dev xsltproc wget unzip python3 python3.10-distutils
 
+      # 3. 克隆 OpenWrt 源码
       - name: Clone OpenWrt source
         run: |
           git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
+
+      # 4. 执行 diy-part1.sh 添加 feeds
+      - name: Run DIY Part 1 (add feeds)
+        run: |
+          cd openwrt
+          chmod +x diy-part1.sh
+          ./diy-part1.sh
+
+      # 5. 更新并安装 feeds
+      - name: Update and install feeds
+        run: |
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Add extra feeds (nikki)
-        run: |
-          cd openwrt
-          echo "src-git myfeeds $EXTRA_FEEDS" >> feeds.conf.default
-          ./scripts/feeds update myfeeds
-          ./scripts/feeds install nikki
-
+      # 6. 配置目标和启用插件
       - name: Configure target and packages
         run: |
           cd openwrt
@@ -55,11 +62,13 @@ jobs:
           sed -i 's/CONFIG_PACKAGE_adguardhome=n/CONFIG_PACKAGE_adguardhome=y/' .config
           sed -i 's/CONFIG_PACKAGE_nikki=n/CONFIG_PACKAGE_nikki=y/' .config
 
+      # 7. 编译固件
       - name: Compile firmware
         run: |
           cd openwrt
           make -j$JOBS V=s
 
+      # 8. 上传固件
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
