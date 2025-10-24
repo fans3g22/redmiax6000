@@ -59,7 +59,7 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update and install feeds
-      working-directory: $GITHUB_WORKSPACE/openwrt
+      working-directory: ${{ github.workspace }}/openwrt
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
