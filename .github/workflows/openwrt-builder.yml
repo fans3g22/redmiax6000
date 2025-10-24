@@ -17,76 +17,84 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     steps:
-    - name: Show system
-      run: |
-        echo "Total CPU cores: $(nproc)"
-        cat /proc/cpuinfo | grep 'model name'
 
-    - name: Clean runner disk
+    - name: Show system info
       run: |
-        echo "Cleaning up disk to free space..."
+        echo "CPU cores: $(nproc)"
+        free -h
+        df -hT
+
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        swap-size-mb: 1024
+        temp-reserve-mb: 512
+        root-reserve-mb: 4608
+        remove-dotnet: true
+        remove-android: true
+        remove-haskell: true
+        remove-codeql: true
+
+    - name: Clean runner environment
+      run: |
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         sudo docker image prune --all --force
         sudo apt-get clean
-        sudo rm -rf $GITHUB_WORKSPACE/*
+        df -hT
 
-    - name: Checkout source
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 1
+    - name: Checkout DIY scripts
+      uses: actions/checkout@main
 
-    - name: Clone OpenWrt
+    - name: Clone OpenWrt source
       run: |
         mkdir -p $GITHUB_WORKSPACE/workdir
         cd $GITHUB_WORKSPACE/workdir
         git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
+        ln -sf $GITHUB_WORKSPACE/workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Load custom feeds
+    - name: Run DIY part1
       run: |
-        
-        [ -e $GITHUB_WORKSPACE/$DIY_P1_SH ] && chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH && $GITHUB_WORKSPACE/$DIY_P1_SH
+        [ -e $GITHUB_WORKSPACE/$DIY_P1_SH ] && chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH
+        $GITHUB_WORKSPACE/$DIY_P1_SH
 
-    - name: Update feeds (minimal)
+    - name: Update and install feeds
+      working-directory: $GITHUB_WORKSPACE/openwrt
       run: |
-        cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+        # 清理小文件，减少空间占用
+        find dl -size -1024c -exec rm -f {} \;
 
-    - name: Remove unnecessary downloads
+    - name: Load custom config and DIY part2
       run: |
-        cd openwrt/dl
-        find . -size -1024c -delete
+        [ -e $GITHUB_WORKSPACE/$CONFIG_FILE ] && cp $GITHUB_WORKSPACE/$CONFIG_FILE $GITHUB_WORKSPACE/openwrt/.config
+        [ -e $GITHUB_WORKSPACE/$DIY_P2_SH ] && chmod +x $GITHUB_WORKSPACE/$DIY_P2_SH
+        cd $GITHUB_WORKSPACE/openwrt
+        $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    - name: Load custom configuration
+    - name: Download packages
+      working-directory: $GITHUB_WORKSPACE/openwrt
       run: |
-        cd openwrt
-        [ -e $GITHUB_WORKSPACE/$CONFIG_FILE ] && mv $GITHUB_WORKSPACE/$CONFIG_FILE .config
-        [ -e $GITHUB_WORKSPACE/$DIY_P2_SH ] && chmod +x $GITHUB_WORKSPACE/$DIY_P2_SH && $GITHUB_WORKSPACE/$DIY_P2_SH
-
-    - name: Prepare build
-      run: |
-        cd openwrt
         make defconfig
+        make download -j8
+        find dl -size -1024c -exec rm -f {} \;
 
-    - name: Compile firmware (reduced parallel)
+    - name: Compile firmware
+      working-directory: $GITHUB_WORKSPACE/openwrt
       run: |
-        cd openwrt
-        echo "Compiling with 2 threads to save space"
-        make -j2 V=s || make -j1 V=s
+        echo "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +'%Y%m%d%H%M')" >> $GITHUB_ENV
 
-    - name: Check disk usage
+    - name: Check space usage
       run: df -hT
 
-    - name: Organize firmware
+    - name: Organize and upload firmware
+      working-directory: $GITHUB_WORKSPACE/openwrt/bin/targets
       run: |
-        cd openwrt/bin/targets/*/*
+        cd */*
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: OpenWrt_firmware
-        path: ${{ env.FIRMWARE }}
