@@ -86,7 +86,7 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
     - name: Upload firmware
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@latest
       with:
         name: OpenWrt_firmware
         path: ${{ env.FIRMWARE }}
