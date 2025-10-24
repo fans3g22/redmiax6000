@@ -45,7 +45,7 @@ jobs:
 
     - name: Load custom feeds
       run: |
-        cd openwrt
+        
         [ -e $GITHUB_WORKSPACE/$DIY_P1_SH ] && chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH && $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds (minimal)
