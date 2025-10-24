@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential git libncurses5-dev libncursesw5-dev zlib1g-dev \
-          gawk flex quilt libssl-dev xsltproc wget unzip python3 python3-distutils rsync
+          gawk flex quilt libssl-dev xsltproc wget unzip python3 python3.10-distutils
 
       - name: Clone OpenWrt source
         run: |
