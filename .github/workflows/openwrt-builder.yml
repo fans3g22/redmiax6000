@@ -127,6 +127,7 @@ jobs:
 
 
     - name: Start SSH via tmate
+      if: ${{ github.event.inputs.debug == 'true' }}
       uses: P3TERX/ssh2actions@main
 
     
