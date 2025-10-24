@@ -15,6 +15,10 @@
 
 # Add a feed source
 #echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
-wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+#!/bin/bash
+set -ex
+
+# Directly clone nikki feed
+git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
 
 
