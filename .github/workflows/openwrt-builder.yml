@@ -37,9 +37,8 @@ jobs:
       # 4. 执行 diy-part1.sh 添加 feeds
       - name: Run DIY Part 1 (add feeds)
         run: |
-          cd openwrt
-          chmod +x diy-part1.sh
-          ./diy-part1.sh
+              chmod +x diy-part1.sh
+                ./diy-part1.sh
 
       # 5. 更新并安装 feeds
       - name: Update and install feeds
