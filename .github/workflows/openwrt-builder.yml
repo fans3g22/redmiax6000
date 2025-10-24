@@ -1,7 +1,7 @@
-name: OpenWrt Builder
+name: OpenWrt Builder (Minimal)
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    name: Build OpenWrt
+    name: Build OpenWrt Minimal Firmware
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +27,8 @@ jobs:
       - name: Setup build environment
         run: |
           sudo apt update
-          sudo apt install -y build-essential git libncurses5-dev libncursesw5-dev zlib1g-dev gawk flex quilt libssl-dev xsltproc wget unzip python3 python3-distutils-extra
+          sudo apt install -y build-essential git libncurses5-dev libncursesw5-dev \
+          zlib1g-dev gawk flex quilt libssl-dev xsltproc wget unzip python3 python3-distutils-extra
 
       # 3. 克隆 OpenWrt 源码
       - name: Clone OpenWrt source
@@ -37,8 +38,8 @@ jobs:
       # 4. 执行 diy-part1.sh 添加 feeds
       - name: Run DIY Part 1 (add feeds)
         run: |
-              chmod +x diy-part1.sh
-                ./diy-part1.sh
+          chmod +x diy-part1.sh
+          ./diy-part1.sh
 
       # 5. 更新并安装 feeds
       - name: Update and install feeds
@@ -47,21 +48,28 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 6. 配置目标和启用插件
-      - name: Configure target and packages
+      # 6. 配置 minimal 配置 + 启用目标设备和插件
+      - name: Configure minimal target and packages
         run: |
           cd openwrt
+          # 生成默认配置
           make defconfig
+
           # 启用目标设备
-          sed -i "s/CONFIG_TARGET_|TARGET_|PROFILE_/CONFIG_TARGET_$TARGET=y/" .config || true
-          sed -i "s/CONFIG_TARGET_DEVICE_|PROFILE_/CONFIG_TARGET_DEVICE_$PROFILE=y/" .config || true
-          # 启用 AdGuardHome 和 nikki
-          sed -i 's/CONFIG_PACKAGE_luci-app-adguardhome=n/CONFIG_PACKAGE_luci-app-adguardhome=y/' .config
-          sed -i 's/CONFIG_PACKAGE_adguardhome=n/CONFIG_PACKAGE_adguardhome=y/' .config
-          sed -i 's/CONFIG_PACKAGE_nikki=n/CONFIG_PACKAGE_nikki=y/' .config
+          sed -i "s/^# CONFIG_TARGET_mediatek_filogic is not set/CONFIG_TARGET_mediatek_filogic=y/" .config
+          sed -i "s/^# CONFIG_TARGET_DEVICE_xiaomi_redmi-router-ax6000 is not set/CONFIG_TARGET_DEVICE_xiaomi_redmi-router-ax6000=y/" .config
+
+          # 启用必要插件
+          sed -i 's/^# CONFIG_PACKAGE_luci-app-adguardhome is not set/CONFIG_PACKAGE_luci-app-adguardhome=y/' .config
+          sed -i 's/^# CONFIG_PACKAGE_adguardhome is not set/CONFIG_PACKAGE_adguardhome=y/' .config
+          sed -i 's/^# CONFIG_PACKAGE_nikki is not set/CONFIG_PACKAGE_nikki=y/' .config
+
+          # 禁用不必要默认包（示例，可按需增加）
+          sed -i 's/^CONFIG_PACKAGE_luci=y/CONFIG_PACKAGE_luci=n/' .config
+          sed -i 's/^CONFIG_PACKAGE_luci-app-firewall=y/CONFIG_PACKAGE_luci-app-firewall=n/' .config
 
       # 7. 编译固件
-      - name: Compile firmware
+      - name: Compile minimal firmware
         run: |
           cd openwrt
           make -j$JOBS V=s
