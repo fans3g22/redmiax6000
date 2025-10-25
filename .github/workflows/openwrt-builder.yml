@@ -21,7 +21,7 @@ on:
     - cron: 0 0 1 * *
 
 env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_URL: https://github.com/immortalwrt/immortalwrto
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -75,15 +75,7 @@ jobs:
         ./scripts/feeds install -a
         cp -f ${GITHUB_WORKSPACE}/$CONFIG_FILE ${GITHUB_WORKSPACE}/iwrt/.config
         make defconfig
-    # 🔧 修复 base-files= 构建错误
-    - name: Fix invalid base-files package definition
-      run: |
-        echo "🔧 Patching invalid base-files= dependency..."
-        find ${GITHUB_WORKSPACE}/iwrt -type f \( -name "Makefile" -o -name "*.sh" -o -name "apk_install_list" \) \
-          -exec sed -i 's/"base-files="/"base-files"/g' {} \;
-        find ${GITHUB_WORKSPACE}/iwrt -type f \( -name "Makefile" -o -name "*.sh" -o -name "apk_install_list" \) \
-          -exec sed -i 's/base-files=/base-files/g' {} \;
-        echo "✅ base-files dependency patch applied successfully."
+    
     - name: Download package
       id: package
       run: |
