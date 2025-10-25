@@ -17,6 +17,8 @@
 #echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 #!/bin/bash
 set -ex
+echo ">>> Prebuilding base-files"
+make package/base-files/{clean,compile,install} V=s || exit 1
 
 # Directly clone nikki feed
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
