@@ -61,10 +61,6 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
 
-    - name: Verify DIY scripts
-      run: |
-        ls -l $GITHUB_WORKSPACE/$DIY_P1_SH $GITHUB_WORKSPACE/$DIY_P2_SH
-
     - name: Load custom feeds
       run: |
         cp ${GITHUB_WORKSPACE}/$DIY_P1_SH ${GITHUB_WORKSPACE}/$DIY_P2_SH ${GITHUB_WORKSPACE}/iwrt/
