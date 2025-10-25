@@ -52,6 +52,7 @@ jobs:
       with:
         repository: immortalwrt/immortalwrt
         ref: master
+        path: iwrt
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: SSH connection to Actions
